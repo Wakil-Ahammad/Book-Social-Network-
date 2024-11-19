@@ -3,7 +3,9 @@ package com.example.demo.email;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import static org.springframework.mail.javamail.MimeMessageHelper.*;
 @Service
 @RequiredArgsConstructor
 public class EmailService {
+
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
 
@@ -36,7 +39,7 @@ public class EmailService {
        if(emailTemplateName == null) {
           templateName = "confirm-email";
        } else {
-           templateName = emailTemplateName.name();
+           templateName = emailTemplateName.getName();
        }
 
        MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -49,7 +52,7 @@ public class EmailService {
        Map<String, Object> properties = new HashMap<>();
        properties.put("username", userName);
        properties.put("confirmationUrl", confirmationUrl);
-       properties.put("activation_Code", activationCode);
+       properties.put("activation_code", activationCode);
 
         Context context = new Context();
         context.setVariables(properties);
