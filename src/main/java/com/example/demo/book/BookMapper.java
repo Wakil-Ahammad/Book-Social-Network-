@@ -1,5 +1,6 @@
 package com.example.demo.book;
 
+import com.example.demo.file.FileUtils;
 import com.example.demo.history.BookTransactionHistory;
 import org.springframework.stereotype.Service;
 
@@ -28,8 +29,7 @@ public class BookMapper {
                 .rate(book.getRate())
                 .archived(book.isArchived())
                 .owner(book.getOwner().fullName())
-                // todo implement this later
-                //.cover()
+                .cover(FileUtils.readFileFromLocation(book.getBookCover()))
                 .build();
     }
 
