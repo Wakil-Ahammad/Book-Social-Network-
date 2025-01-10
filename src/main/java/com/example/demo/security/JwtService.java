@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Service
@@ -33,24 +34,28 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts
-                .parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJwt(token)
-                .getBody();
+        try {
+            return Jwts
+                    .parserBuilder()
+                    .setSigningKey(getSignInKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid or malformed JWT", e);
+        }
     }
 
     public String generateToken(UserDetails userDetails) {
        return generateToken(new HashMap<>(), userDetails);
    }
 
-    public String generateToken(HashMap<String,Object> claims, UserDetails userDetails) {
+    public String generateToken(Map<String,Object> claims, UserDetails userDetails) {
         return buildToken(claims, userDetails, jwtExpiration);
     }
 
     private String buildToken(
-            HashMap<String, Object> extraClaims,
+            Map<String, Object> extraClaims,
             UserDetails userDetails,
             long jwtExpiration
     ) {

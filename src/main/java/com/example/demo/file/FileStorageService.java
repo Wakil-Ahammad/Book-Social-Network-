@@ -77,4 +77,8 @@ public class FileStorageService {
 
         return fileName.substring(lastDotIndex+1).toLowerCase();
     }
+
+
+
+
 }
