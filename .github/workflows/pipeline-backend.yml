@@ -121,6 +121,12 @@ jobs:
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
+      - name: Set Docker tags
+        id: docker_tags
+        run: |
+          echo "TAG1=${{ secrets.DOCKERHUB_USERNAME }}/bsn-api:${{ steps.extract_version.outputs.VERSION }}" >> $GITHUB_OUTPUT
+          echo "TAG2=${{ secrets.DOCKERHUB_USERNAME }}/bsn-api:latest" >> $GITHUB_OUTPUT
+
       - name: Build and push to Docker Hub
         uses: docker/build-push-action@v5
         with:
@@ -129,13 +135,11 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ env.DOCKER_USERNAME }}/bsn-api:${{ steps.extract_version.outputs.VERSION }}
-            ${{ env.DOCKER_USERNAME }}/bsn-api:latest
+            ${{ steps.docker_tags.outputs.TAG1 }}
+            ${{ steps.docker_tags.outputs.TAG2 }}
           build-args: |
             PROFILE=dev
             APP_VERSION=${{ steps.extract_version.outputs.VERSION }}
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
 
   deploy:
