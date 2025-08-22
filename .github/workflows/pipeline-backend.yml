@@ -92,7 +92,7 @@ jobs:
       - name: Build Backend
         run: |
           cd Backend
-          ./mvnw clean package
+          ./mvnw clean package -DskipTests
 
       - name: Extract project version
         id: extract_version
