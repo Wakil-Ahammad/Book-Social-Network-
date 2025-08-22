@@ -1,5 +1,7 @@
 package com.example.demo.config;
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -47,7 +49,7 @@ public class BeansConfig {
 
     @Bean
     public AuditorAware<Integer> auditorAware() {
-        return new ApplicationAuditAware();
+        return new com.example.demo.config.ApplicationAuditAware();
     }
 
     @Bean
@@ -62,10 +64,10 @@ public class BeansConfig {
         //config.setAllowCredentials(true);
         config.setAllowedOrigins(allowedOrigins);
         //config.setAllowedHeaders(Arrays.asList(ORIGIN, CONTENT_TYPE, ACCEPT, AUTHORIZATION));
-        config.setAllowedHeaders(Arrays.asList("*")); //have to change this to allow all headers
+        config.setAllowedHeaders(List.of("*")); //have to change this to allow all headers
 
         //config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH"));
-        config.setAllowedMethods(Arrays.asList("*")); //have to change this to allow all headers
+        config.setAllowedMethods(List.of("*")); //have to change this to allow all headers
 
         source.registerCorsConfiguration("/**", config);
 
