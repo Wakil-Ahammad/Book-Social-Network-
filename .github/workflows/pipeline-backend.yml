@@ -191,7 +191,10 @@ jobs:
 #          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "echo SSH connection successful"
 
       - name: Create deployment folder
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'mkdir -p ci-cd && echo "Folder created successfully"'
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
+          mkdir -p ci-cd
+          EOF
 
       - name: Copy docker-compose file
         run: scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:ci-cd/
