@@ -106,8 +106,8 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERHUB_TOKEN}}
 
       - name: Build and push to Docker Hub
         uses: docker/build-push-action@v5
@@ -116,12 +116,11 @@ jobs:
           file: docker/backend/Dockerfile
           push: true
           platforms: linux/amd64
-          tags: ${{secrets.DOCKERHUB_USERNAME}}/bsn-api:${{steps.extract_version.outputs.VERSION}}, ${{secrets.DOCKERHUB_USERNAME}}/bsn-api:latest
+          tags: ${{secrets.DOCKERHUB_USERNAME}}/bsn-api:${{steps.extract_version.outputs.VERSION}},${{secrets.DOCKERHUB_USERNAME}}/bsn-api:latest
           build-args: |
             PROFILE=dev
             APP_VERSION: ${{steps.extract_version.outputs.VERSION}}
 
-       
 
   deploy:
     name: Deploy Backend
@@ -144,7 +143,7 @@ jobs:
       - name: Set ENV variable and deploy
         run: |
           ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
-            export EMAIL_HOSTNAME=${{ secrets.EMAIL_HOST_NAME }}
+            export EMAIL_HOST_NAME=${{ secrets.EMAIL_HOST_NAME }}
             export EMAIL_USER_NAME=${{ secrets.EMAIL_USER_NAME }}
             export EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
             cd ci-cd
