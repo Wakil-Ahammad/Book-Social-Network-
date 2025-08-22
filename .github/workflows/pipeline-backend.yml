@@ -192,10 +192,11 @@ jobs:
 
       - name: Create deployment folder
         run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} mkdir -p ci-cd
-      
+
 
       - name: Copy docker-compose file
-        run: scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:ci-cd/
+        run: |
+          cat docker-compose.yml | ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "cat > ci-cd/docker-compose.yml"
 
       - name: Set ENV variable and deploy
         run: |
