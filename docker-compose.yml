@@ -36,7 +36,7 @@ services:
     container_name: bsn-ui
     image: wakil026/bsn-ui:latest
     ports:
-      - 4200:80
+      - 80:80
     networks:
       - spring-demo
     depends_on:

@@ -353,7 +353,7 @@ jobs:
 
             echo "=== Removing problematic containers ==="
             sudo docker rm -f bsn-api || true
-            sudo docker rm -f bsn-api-container || true
+            sudo docker rm -f bsn-ui || true
 
             echo "=== Removing old images ==="
             sudo docker rmi wakil026/bsn-api:latest || true
