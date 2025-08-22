@@ -239,6 +239,45 @@ jobs:
 #            sudo docker-compose -f docker-compose.yml pull -q
 #            sudo docker-compose -f docker-compose.yml up -d
 #          EOF
+#  deploy:
+#    name: Deploy Backend
+#    runs-on: ubuntu-22.04
+#    needs: build-image
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Setup SSH
+#        run: |
+#          mkdir -p ~/.ssh
+#          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+#          chmod 600 ~/.ssh/id_rsa
+#          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
+#
+#      - name: Test SSH connection
+#        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} pwd
+#
+#      - name: Create deployment folder
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "mkdir -p ~/ci-cd"
+#        env:
+#          VPS_USER: ${{ secrets.VPS_USERNAME }}
+#          VPS_HOST: ${{ secrets.VPS_IP }}
+#
+#      - name: Verify folder created
+#        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'ls -la ~/ci-cd'
+#
+#      - name: Copy docker-compose file
+#        run: scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:~/ci-cd/
+#
+#      - name: Verify file copied
+#        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'ls -la ~/ci-cd/'
+#
+#      - name: Check docker-compose
+#        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'which docker-compose || echo "docker-compose not found"'
+#
+#      - name: Deploy application
+#        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'cd ~/ci-cd && sudo docker-compose up -d'
   deploy:
     name: Deploy Backend
     runs-on: ubuntu-22.04
@@ -252,29 +291,72 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
-
-      - name: Test SSH connection
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} pwd
+          # Add VPS to known hosts
+          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
+      #          # Test SSH connection (fix the quotes)
+      #          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "echo SSH connection successful"
 
       - name: Create deployment folder
         run: |
-          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "mkdir -p ~/ci-cd"
+          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} <<EOF
+          mkdir -p ~/ci-cd
+          EOF
         env:
           VPS_USER: ${{ secrets.VPS_USERNAME }}
           VPS_HOST: ${{ secrets.VPS_IP }}
 
-      - name: Verify folder created
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'ls -la ~/ci-cd'
+      - name: Debug - Check local file
+        run: |
+          echo "=== Local docker-compose.yml ==="
+          ls -la docker-compose.yml
+          echo "First few lines:"
+          head -3 docker-compose.yml
 
       - name: Copy docker-compose file
-        run: scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:~/ci-cd/
+        run: |
+          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} <<EOF
+          cat > ~/ci-cd/docker-compose.yml << 'COMPOSE_EOF'
+          $(cat docker-compose.yml)
+          COMPOSE_EOF
+          EOF
+        env:
+          VPS_USER: ${{ secrets.VPS_USERNAME }}
+          VPS_HOST: ${{ secrets.VPS_IP }}
 
       - name: Verify file copied
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'ls -la ~/ci-cd/'
+        run: |
+          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} << EOF
+          echo "=== VPS ci-cd directory ==="
+          pwd
+          ls -la
+          ls -la ci-cd/
+          echo "=== Checking for docker-compose.yml ==="
+          if [ -f ci-cd/docker-compose.yml ]; then
+              echo "✅ File exists!"
+              wc -l ci-cd/docker-compose.yml
+          else
+              echo "❌ File missing!"
+              echo "Let's check other possible locations:"
+              find . -name "docker-compose.yml" 2>/dev/null || echo "No docker-compose.yml found anywhere"
+          fi
+          EOF
+        env:
+          VPS_USER: ${{ secrets.VPS_USERNAME }}
+          VPS_HOST: ${{ secrets.VPS_IP }}
 
-      - name: Check docker-compose
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'which docker-compose || echo "docker-compose not found"'
-
-      - name: Deploy application
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'cd ~/ci-cd && sudo docker-compose up -d'
+      - name: Set ENV variable and deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} <<EOF
+            export EMAIL_HOST_NAME=${EMAIL_HOST_NAME}
+            export EMAIL_USER_NAME=${EMAIL_USER_NAME}
+            export EMAIL_PASSWORD=${EMAIL_PASSWORD}
+            cd ci-cd
+            sudo docker-compose -f docker-compose.yml pull -q
+            sudo docker-compose -f docker-compose.yml up -d
+          EOF
+        env:
+          VPS_USER: ${{ secrets.VPS_USERNAME }}
+          VPS_HOST: ${{ secrets.VPS_IP }}
+          EMAIL_HOST_NAME: ${{ secrets.EMAIL_HOST_NAME }}
+          EMAIL_USER_NAME: ${{ secrets.EMAIL_USER_NAME }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
