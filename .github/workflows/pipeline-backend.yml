@@ -109,6 +109,18 @@ jobs:
           username: ${{secrets.DOCKERHUB_USERNAME}}
           password: ${{secrets.DOCKERHUB_TOKEN}}
 
+      - name: Debug Docker username
+        run: |
+          echo "Username length: ${#DOCKERHUB_USERNAME}"
+          echo "Username (first 3 chars): ${DOCKERHUB_USERNAME:0:3}"
+          if [ -z "$DOCKERHUB_USERNAME" ]; then
+            echo "ERROR: Username is empty!"
+          else
+            echo "Username is set"
+          fi
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
       - name: Build and push to Docker Hub
         uses: docker/build-push-action@v5
         with:
