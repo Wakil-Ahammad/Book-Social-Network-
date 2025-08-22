@@ -193,10 +193,34 @@ jobs:
       - name: Create deployment folder
         run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} mkdir -p ci-cd
 
+      - name: Debug - Check local file
+        run: |
+          echo "=== Local docker-compose.yml ==="
+          ls -la docker-compose.yml
+          echo "First few lines:"
+          head -3 docker-compose.yml
+
 
       - name: Copy docker-compose file
+        run: scp -o StrictHostKeyChecking=no ./docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:~/ci-cd/docker-compose.yml
+
+      - name: Verify file copied
         run: |
-          cat docker-compose.yml | ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "cat > ci-cd/docker-compose.yml"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} << EOF
+          echo "=== VPS ci-cd directory ==="
+          pwd
+          ls -la
+          ls -la ci-cd/
+          echo "=== Checking for docker-compose.yml ==="
+          if [ -f ci-cd/docker-compose.yml ]; then
+              echo "✅ File exists!"
+              wc -l ci-cd/docker-compose.yml
+          else
+              echo "❌ File missing!"
+              echo "Let's check other possible locations:"
+              find . -name "docker-compose.yml" 2>/dev/null || echo "No docker-compose.yml found anywhere"
+          fi
+          EOF
 
       - name: Set ENV variable and deploy
         run: |
