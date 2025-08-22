@@ -258,7 +258,11 @@ jobs:
         run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} pwd
 
       - name: Create deployment folder
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'mkdir -p ~/ci-cd'
+        run: |
+          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "mkdir -p ~/ci-cd"
+        env:
+          VPS_USER: ${{ secrets.VPS_USERNAME }}
+          VPS_HOST: ${{ secrets.VPS_IP }}
 
       - name: Verify folder created
         run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} 'ls -la ~/ci-cd'
