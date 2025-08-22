@@ -143,27 +143,62 @@ jobs:
 
 
 
+#  deploy:
+#    name: Deploy Backend
+#    runs-on: ubuntu-22.04
+#    needs: build-image
+#    steps:
+#      - name: Setup SSH
+#        run: |
+#          mkdir -p ~/.ssh
+#          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+#          chmod 600 ~/.ssh/id_rsa
+#          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
+#
+#      - name: Create deployment folder
+#        run: ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "mkdir -p ci-cd"
+#
+#      - name: Copy docker-compose file
+#        run: scp docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:ci-cd/
+#
+#      - name: Set ENV variable and deploy
+#        run: |
+#          ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
+#            export EMAIL_HOST_NAME=${{ secrets.EMAIL_HOST_NAME }}
+#            export EMAIL_USER_NAME=${{ secrets.EMAIL_USER_NAME }}
+#            export EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+#            cd ci-cd
+#            sudo docker-compose -f docker-compose.yml pull -q
+#            sudo docker-compose -f docker-compose.yml up -d
+#          EOF
+
   deploy:
     name: Deploy Backend
     runs-on: ubuntu-22.04
     needs: build-image
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
+          # Add VPS to known hosts with better error handling
+          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          # Test SSH connection
+          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "echo 'SSH connection successful'"
 
       - name: Create deployment folder
-        run: ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "mkdir -p ci-cd"
+        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "mkdir -p ci-cd"
 
       - name: Copy docker-compose file
-        run: scp docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:ci-cd/
+        run: scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:ci-cd/
 
       - name: Set ENV variable and deploy
         run: |
-          ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
             export EMAIL_HOST_NAME=${{ secrets.EMAIL_HOST_NAME }}
             export EMAIL_USER_NAME=${{ secrets.EMAIL_USER_NAME }}
             export EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
