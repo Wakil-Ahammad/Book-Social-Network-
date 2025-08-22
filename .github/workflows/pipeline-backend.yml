@@ -344,15 +344,46 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USERNAME }}
           VPS_HOST: ${{ secrets.VPS_IP }}
 
-      - name: Set ENV variable and deploy
+      - name: Clean up existing containers
+        run: |
+          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} <<EOF
+            cd ~/ci-cd
+            echo "=== Stopping all containers ==="
+            sudo docker-compose down || true
+
+            echo "=== Removing problematic containers ==="
+            sudo docker rm -f bsn-api || true
+            sudo docker rm -f bsn-api-container || true
+
+            echo "=== Removing old images ==="
+            sudo docker rmi wakil026/bsn-api:latest || true
+
+            echo "=== Pruning system ==="
+            sudo docker system prune -f
+
+            echo "=== Current containers ==="
+            sudo docker ps -a
+          EOF
+        env:
+          VPS_USER: ${{ secrets.VPS_USERNAME }}
+          VPS_HOST: ${{ secrets.VPS_IP }}
+
+      - name: Deploy application (clean start)
         run: |
           ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} <<EOF
             export EMAIL_HOST_NAME=${EMAIL_HOST_NAME}
             export EMAIL_USER_NAME=${EMAIL_USER_NAME}
             export EMAIL_PASSWORD=${EMAIL_PASSWORD}
-            cd ci-cd
-            sudo docker-compose -f docker-compose.yml pull -q
-            sudo docker-compose -f docker-compose.yml up -d
+            cd ~/ci-cd
+
+            echo "=== Pulling fresh images ==="
+            sudo docker-compose pull
+
+            echo "=== Starting containers ==="
+            sudo docker-compose up -d --force-recreate
+
+            echo "=== Final status ==="
+            sudo docker ps
           EOF
         env:
           VPS_USER: ${{ secrets.VPS_USERNAME }}
