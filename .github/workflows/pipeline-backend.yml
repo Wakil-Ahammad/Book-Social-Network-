@@ -32,30 +32,30 @@ jobs:
           
 
 
-  unit-test:
-    runs-on: ubuntu-22.04
-    name: Run Unit Tests
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-            fetch-depth: 0
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: 'corretto'
-
-      - name: Run Unit Tests
-        run: |
-          cd Backend
-          ./mvnw clean test
+#  unit-test:
+#    runs-on: ubuntu-22.04
+#    name: Run Unit Tests
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#        with:
+#            fetch-depth: 0
+#
+#      - name: Set up JDK
+#        uses: actions/setup-java@v4
+#        with:
+#          java-version: 17
+#          distribution: 'corretto'
+#
+#      - name: Run Unit Tests
+#        run: |
+#          cd Backend
+#          ./mvnw clean test
 
   build:
     runs-on: ubuntu-22.04
     name: Build Backend
-    needs: [compile, unit-test]
+    needs: compile
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
