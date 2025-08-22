@@ -203,10 +203,11 @@ jobs:
 
       - name: Copy docker-compose file
         run: |
-          # Copy to home directory first
-          scp -o StrictHostKeyChecking=no ./docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:~/
-          # Move to ci-cd via SSH
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "mv ~/docker-compose.yml ~/ci-cd/"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
+          cat > ~/ci-cd/docker-compose.yml << 'COMPOSE_EOF'
+          $(cat docker-compose.yml)
+          COMPOSE_EOF
+          EOF
 
       - name: Verify file copied
         run: |
