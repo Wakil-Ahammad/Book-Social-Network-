@@ -1,9 +1,97 @@
+#name: BSN Frontend Pipeline
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#    paths:
+#      - UI-book-network/**
+#      - docker/frontend/**
+#      - 'docker-compose.yml'
+#      - '.github/workflows/*-frontend.yml'
+#jobs:
+#  build-image:
+#    runs-on: ubuntu-22.04
+#    name: Build Frontend Docker Image
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#        with:
+#            fetch-depth: 0
+#
+##      - name: Set up Node.js
+##        uses: actions/setup-node@v3
+##        with:
+##          node-version: '18'
+#
+#      - name: Extract project version
+#        id: extract_version
+#        run: |
+#          cd UI-book-network
+#          echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+#
+#
+##      - name: Install dependencies and build
+##        run: |
+##          cd UI-book-network
+##          npm install
+##          npm run build --prod
+##
+##      - name: Build Docker image
+##        run: |
+##          docker build -t bsn/bsn-ui:1.0.0 -f docker/frontend/Dockerfile .
+#
+#      - name: Log in to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+#          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+#
+##      - name: Push Docker image to Docker Hub
+##        run: |
+##          docker push bsn/bsn-ui:1.0.0
+#
+#      - name: Build and push to Docker Hub
+#        uses: docker/build-push-action@v5
+#        with:
+#          context: UI-book-network
+#          file: docker/frontend/Dockerfile
+#          push: true
+#          platforms: linux/amd64
+#          tags: ${{secrets.DOCKERHUB_USERNAME}}/bsn-ui:${{ steps.extract_version.outputs.VERSION }}, ${{secrets.DOCKERHUB_USERNAME}}/bsn-ui:latest
+#
+#  deploy:
+#    name: Deploy Frontend
+#    runs-on: ubuntu-22.04
+#    needs: build-image
+#    steps:
+#      - name: Setup SSH
+#        run: |
+#          mkdir -p ~/.ssh
+#          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+#          chmod 600 ~/.ssh/id_rsa
+#          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
+#
+#      - name: Create deployment folder
+#        run: ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "mkdir -p ci-cd"
+#
+#      - name: Copy docker-compose file
+#        run: scp docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:ci-cd/
+#
+#      - name: Set ENV variable and deploy
+#        run: |
+#          ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
+#            cd ci-cd
+#            sudo docker-compose -f docker-compose.yml pull -q
+#            sudo docker-compose -f docker-compose.yml up -d
+#          EOF
+
 name: BSN Frontend Pipeline
 
 on:
   push:
     branches:
-      - main
+      - main-frontend
     paths:
       - UI-book-network/**
       - docker/frontend/**
@@ -17,10 +105,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-            fetch-depth: 0
+          fetch-depth: 0
 
 #      - name: Set up Node.js
-#        uses: actions/setup-node@v3
+#        uses: actions/setup-node@v4
 #        with:
 #          node-version: '18'
 
@@ -30,58 +118,109 @@ jobs:
           cd UI-book-network
           echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-
-#      - name: Install dependencies and build
-#        run: |
-#          cd UI-book-network
-#          npm install
-#          npm run build --prod
-#
-#      - name: Build Docker image
-#        run: |
-#          docker build -t bsn/bsn-ui:1.0.0 -f docker/frontend/Dockerfile .
-
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-#      - name: Push Docker image to Docker Hub
-#        run: |
-#          docker push bsn/bsn-ui:1.0.0
+      - name: Debug Docker username
+        run: |
+          echo "Username length: ${#DOCKERHUB_USERNAME}"
+          echo "Username (first 3 chars): ${DOCKERHUB_USERNAME:0:3}"
+          if [ -z "$DOCKERHUB_USERNAME" ]; then
+            echo "ERROR: Username is empty!"
+          else
+            echo "Username is set"
+          fi
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
       - name: Build and push to Docker Hub
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: UI-book-network
           file: docker/frontend/Dockerfile
           push: true
           platforms: linux/amd64
-          tags: ${{secrets.DOCKERHUB_USERNAME}}/bsn-ui:${{ steps.extract_version.outputs.VERSION }}, ${{secrets.DOCKERHUB_USERNAME}}/bsn-ui:latest
+          tags: |
+            wakil026/bsn-ui:${{ steps.extract_version.outputs.VERSION }}
+            wakil026/bsn-ui:latest
+          build-args: |
+            APP_VERSION=${{ steps.extract_version.outputs.VERSION }}
 
-  deploy:
-    name: Deploy Frontend
-    runs-on: ubuntu-22.04
-    needs: build-image
-    steps:
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
-
-      - name: Create deployment folder
-        run: ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "mkdir -p ci-cd"
-
-      - name: Copy docker-compose file
-        run: scp docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:ci-cd/
-
-      - name: Set ENV variable and deploy
-        run: |
-          ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
-            cd ci-cd
-            sudo docker-compose -f docker-compose.yml pull -q
-            sudo docker-compose -f docker-compose.yml up -d
-          EOF
+#  deploy:
+#    name: Deploy Frontend
+#    runs-on: ubuntu-22.04
+#    needs: build-image
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Setup SSH
+#        run: |
+#          mkdir -p ~/.ssh
+#          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+#          chmod 600 ~/.ssh/id_rsa
+#          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
+#
+#      - name: Create deployment folder
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} <<EOF
+#          mkdir -p ~/ci-cd
+#          EOF
+#        env:
+#          VPS_USER: ${{ secrets.VPS_USERNAME }}
+#          VPS_HOST: ${{ secrets.VPS_IP }}
+#
+#      - name: Debug - Check local file
+#        run: |
+#          echo "=== Local docker-compose.yml ==="
+#          ls -la docker-compose.yml
+#          echo "First few lines:"
+#          head -3 docker-compose.yml
+#
+#      - name: Copy docker-compose file
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} <<EOF
+#          cat > ~/ci-cd/docker-compose.yml << 'COMPOSE_EOF'
+#          $(cat docker-compose.yml)
+#          COMPOSE_EOF
+#          EOF
+#        env:
+#          VPS_USER: ${{ secrets.VPS_USERNAME }}
+#          VPS_HOST: ${{ secrets.VPS_IP }}
+#
+#      - name: Verify file copied
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} << EOF
+#          echo "=== VPS ci-cd directory ==="
+#          pwd
+#          ls -la
+#          ls -la ~/ci-cd/
+#          echo "=== Checking for docker-compose.yml ==="
+#          if [ -f ~/ci-cd/docker-compose.yml ]; then
+#              echo "✅ File exists!"
+#              wc -l ~/ci-cd/docker-compose.yml
+#          else
+#              echo "❌ File missing!"
+#              echo "Let's check other possible locations:"
+#              find . -name "docker-compose.yml" 2>/dev/null || echo "No docker-compose.yml found anywhere"
+#          fi
+#          EOF
+#        env:
+#          VPS_USER: ${{ secrets.VPS_USERNAME }}
+#          VPS_HOST: ${{ secrets.VPS_IP }}
+#
+#      - name: Deploy frontend
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} <<EOF
+#            cd ~/ci-cd
+#            sudo docker-compose -f docker-compose.yml pull -q
+#            sudo docker-compose -f docker-compose.yml up -d
+#            echo "=== Deployment Status ==="
+#            sudo docker ps
+#          EOF
+#        env:
+#          VPS_USER: ${{ secrets.VPS_USERNAME }}
+#          VPS_HOST: ${{ secrets.VPS_IP }}
