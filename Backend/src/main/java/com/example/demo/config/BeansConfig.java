@@ -1,6 +1,7 @@
 package com.example.demo.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
@@ -17,6 +18,7 @@ import org.springframework.web.filter.CorsFilter;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.springframework.http.HttpHeaders.*;
 
@@ -24,9 +26,11 @@ import static org.springframework.http.HttpHeaders.*;
 @RequiredArgsConstructor
 public class BeansConfig {
 
-    private final UserDetailsService userDetailsService;
     @Value("${application.cors.origins: *}")
     private List<String> allowedOrigins;
+
+
+    private final UserDetailsService userDetailsService;
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
