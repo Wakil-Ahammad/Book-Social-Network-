@@ -142,6 +142,7 @@ jobs:
             APP_VERSION=${{ steps.extract_version.outputs.VERSION }}
 
 
+
   deploy:
     name: Deploy Backend
     runs-on: ubuntu-22.04
