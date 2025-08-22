@@ -24,7 +24,7 @@ services:
 
   bsn-api:
     container_name: bsn-api
-    image: bsn/bsn:1.0.3
+    image: wakil026/bsn-api:latest
     ports:
       - 8088:8088
     networks:
@@ -32,15 +32,15 @@ services:
     depends_on:
       - postgres
 
-  bsn-ui:
-    container_name: bsn-ui
-    image: bsn/bsn-ui:1.0.0
-    ports:
-      - 4200:80
-    networks:
-      - spring-demo
-    depends_on:
-      - bsn-api
+#  bsn-ui:
+#    container_name: bsn-ui
+#    image: bsn/bsn-ui:1.0.0
+#    ports:
+#      - 4200:80
+#    networks:
+#      - spring-demo
+#    depends_on:
+#      - bsn-api
 
 networks:
   spring-demo:
