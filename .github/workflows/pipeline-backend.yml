@@ -187,8 +187,8 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           # Add VPS to known hosts
           ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
-          # Test SSH connection (fix the quotes)
-          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "echo SSH connection successful"
+#          # Test SSH connection (fix the quotes)
+#          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "echo SSH connection successful"
 
       - name: Create deployment folder
         run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "mkdir -p ci-cd"
