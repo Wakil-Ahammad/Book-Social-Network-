@@ -41,7 +41,7 @@ application:
       activation-url: http://localhost:4200/activate-account
 
   cors:
-    origins: http://localhost:4200, http://localhost:8080, http://51.20.174.248:8080, http://51.20.174.248:80
+    origins: http://localhost:4200, http://localhost:8080, http://51.20.174.248:8088, http://51.20.174.248:80
   file:
     upload:
       photos-output-path: ./uploads

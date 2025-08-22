@@ -62,7 +62,7 @@ public class BeansConfig {
         final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         final CorsConfiguration config = new CorsConfiguration();
         //config.setAllowCredentials(true);
-        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedOrigins(List.of("*"));
         //config.setAllowedHeaders(Arrays.asList(ORIGIN, CONTENT_TYPE, ACCEPT, AUTHORIZATION));
         config.setAllowedHeaders(List.of("*")); //have to change this to allow all headers
 
