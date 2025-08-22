@@ -128,7 +128,7 @@ jobs:
 #          echo "TAG2=${{ secrets.DOCKERHUB_USERNAME }}/bsn-api:latest" >> $GITHUB_OUTPUT
 
       - name: Build and push to Docker Hub
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: Backend
           file: docker/backend/Dockerfile
