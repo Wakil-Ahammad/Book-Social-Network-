@@ -1,0 +1,153 @@
+name: BSN Backend Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Backend/**
+      - docker/backend/**
+      - 'docker-compose.yml'
+      - '.github/workflows/*-backend.yml'
+jobs:
+  compile:
+    runs-on:  ubuntu-22.04
+    name: Compile Backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'corretto'
+
+      - name: Compile Backend
+        run: |
+          cd Backend
+          ./mvnw clean compile 
+          
+
+
+  unit-test:
+    runs-on: ubuntu-22.04
+    name: Run Unit Tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'corretto'
+
+      - name: Run Unit Tests
+        run: |
+          cd Backend
+          ./mvnw clean test
+
+  build:
+    runs-on: ubuntu-22.04
+    name: Build Backend
+    needs: [compile, unit-test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'corretto'
+
+      - name: Build Backend
+        run: |
+          cd Backend
+          ./mvnw clean package
+
+  build-image:
+    runs-on: ubuntu-22.04
+    name: Build Docker Image
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'corretto'
+
+      - name: Build Backend
+        run: |
+          cd Backend
+          ./mvnw clean package
+
+      - name: Extract project version
+        id: extract_version
+        run: |
+            cd Backend
+            echo "VERSION=$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)" >> $GITHUB_OUTPUT
+
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push to Docker Hub
+        uses: docker/build-push-action@v5
+        with:
+          context: Backend
+          file: docker/backend/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ${{secrets.DOCKERHUB_USERNAME}}/bsn-api:${{ steps.extract_version.outputs.VERSION }}, ${{secrets.DOCKERHUB_USERNAME}}/bsn-api:latest
+          build-args: |
+            PROFILE: dev
+            APP_VERSION: ${{ steps.extract_version.outputs.VERSION }}
+
+       
+
+  deploy:
+    name: Deploy Backend
+    runs-on: ubuntu-22.04
+    needs: build-image
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
+
+      - name: Create deployment folder
+        run: ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "mkdir -p ci-cd"
+
+      - name: Copy docker-compose file
+        run: scp docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:ci-cd/
+
+      - name: Set ENV variable and deploy
+        run: |
+          ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
+            export EMAIL_HOSTNAME=${{ secrets.EMAIL_HOST_NAME }}
+            export EMAIL_USER_NAME=${{ secrets.EMAIL_USER_NAME }}
+            export EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+            cd ci-cd
+            sudo docker-compose -f docker-compose.yml pull -q
+            sudo docker-compose -f docker-compose.yml up -d
+          EOF
