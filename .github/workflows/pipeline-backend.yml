@@ -172,6 +172,73 @@ jobs:
 #            sudo docker-compose -f docker-compose.yml up -d
 #          EOF
 
+#  deploy:
+#    name: Deploy Backend
+#    runs-on: ubuntu-22.04
+#    needs: build-image
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Setup SSH
+#        run: |
+#          mkdir -p ~/.ssh
+#          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+#          chmod 600 ~/.ssh/id_rsa
+#          # Add VPS to known hosts
+#          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
+##          # Test SSH connection (fix the quotes)
+##          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "echo SSH connection successful"
+#
+#      - name: Create deployment folder
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
+#          mkdir -p ~/ci-cd
+#          EOF
+#
+#      - name: Debug - Check local file
+#        run: |
+#          echo "=== Local docker-compose.yml ==="
+#          ls -la docker-compose.yml
+#          echo "First few lines:"
+#          head -3 docker-compose.yml
+#
+#      - name: Copy docker-compose file
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
+#          cat > ~/ci-cd/docker-compose.yml << 'COMPOSE_EOF'
+#          $(cat docker-compose.yml)
+#          COMPOSE_EOF
+#          EOF
+#
+#      - name: Verify file copied
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} << EOF
+#          echo "=== VPS ci-cd directory ==="
+#          pwd
+#          ls -la
+#          ls -la ci-cd/
+#          echo "=== Checking for docker-compose.yml ==="
+#          if [ -f ci-cd/docker-compose.yml ]; then
+#              echo "✅ File exists!"
+#              wc -l ci-cd/docker-compose.yml
+#          else
+#              echo "❌ File missing!"
+#              echo "Let's check other possible locations:"
+#              find . -name "docker-compose.yml" 2>/dev/null || echo "No docker-compose.yml found anywhere"
+#          fi
+#          EOF
+#
+#      - name: Set ENV variable and deploy
+#        run: |
+#          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
+#            export EMAIL_HOST_NAME=${{ secrets.EMAIL_HOST_NAME }}
+#            export EMAIL_USER_NAME=${{ secrets.EMAIL_USER_NAME }}
+#            export EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+#            cd ci-cd
+#            sudo docker-compose -f docker-compose.yml pull -q
+#            sudo docker-compose -f docker-compose.yml up -d
+#          EOF
   deploy:
     name: Deploy Backend
     runs-on: ubuntu-22.04
@@ -185,57 +252,30 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Add VPS to known hosts
-          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
-#          # Test SSH connection (fix the quotes)
-#          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "echo SSH connection successful"
+          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
 
       - name: Create deployment folder
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
-          mkdir -p ~/ci-cd
-          EOF
+        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "mkdir -p ~/ci-cd && echo 'Folder created' && ls -la ~/ci-cd"
 
-      - name: Debug - Check local file
-        run: |
-          echo "=== Local docker-compose.yml ==="
-          ls -la docker-compose.yml
-          echo "First few lines:"
-          head -3 docker-compose.yml
-
-      - name: Copy docker-compose file
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
-          cat > ~/ci-cd/docker-compose.yml << 'COMPOSE_EOF'
-          $(cat docker-compose.yml)
-          COMPOSE_EOF
-          EOF
+      - name: Copy docker-compose file via SCP
+        run: scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:~/ci-cd/
 
       - name: Verify file copied
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} << EOF
-          echo "=== VPS ci-cd directory ==="
-          pwd
-          ls -la
-          ls -la ci-cd/
-          echo "=== Checking for docker-compose.yml ==="
-          if [ -f ci-cd/docker-compose.yml ]; then
-              echo "✅ File exists!"
-              wc -l ci-cd/docker-compose.yml
-          else
-              echo "❌ File missing!"
-              echo "Let's check other possible locations:"
-              find . -name "docker-compose.yml" 2>/dev/null || echo "No docker-compose.yml found anywhere"
-          fi
-          EOF
+        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "ls -la ~/ci-cd/ && echo 'Contents:' && head -3 ~/ci-cd/docker-compose.yml"
 
-      - name: Set ENV variable and deploy
+      - name: Install docker-compose if needed
+        run: ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "which docker-compose || (sudo apt update && sudo apt install -y docker-compose)"
+
+      - name: Deploy application
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} <<EOF
-            export EMAIL_HOST_NAME=${{ secrets.EMAIL_HOST_NAME }}
-            export EMAIL_USER_NAME=${{ secrets.EMAIL_USER_NAME }}
-            export EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
-            cd ci-cd
-            sudo docker-compose -f docker-compose.yml pull -q
-            sudo docker-compose -f docker-compose.yml up -d
-          EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} "
+            cd ~/ci-cd &&
+            export EMAIL_HOST_NAME=${{ secrets.EMAIL_HOST_NAME }} &&
+            export EMAIL_USER_NAME=${{ secrets.EMAIL_USER_NAME }} &&
+            export EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }} &&
+            sudo docker-compose down || true &&
+            sudo docker-compose pull &&
+            sudo docker-compose up -d &&
+            echo 'Deployment complete!' &&
+            sudo docker ps
+          "
