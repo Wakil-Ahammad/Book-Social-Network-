@@ -371,17 +371,12 @@ jobs:
       - name: Deploy application (clean start)
         run: |
           ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} <<EOF
-            export EMAIL_HOST_NAME=${EMAIL_HOST_NAME}
-            export EMAIL_USER_NAME=${EMAIL_USER_NAME}
-            export EMAIL_PASSWORD=${EMAIL_PASSWORD}
             cd ~/ci-cd
             
             echo "=== Creating .env file ==="
-            cat > .env << 'ENV_EOF'
-            EMAIL_HOST_NAME=${EMAIL_HOST_NAME}
-            EMAIL_USER_NAME=${EMAIL_USER_NAME}
-            EMAIL_PASSWORD=${EMAIL_PASSWORD}
-            ENV_EOF
+            echo "EMAIL_HOST_NAME=${EMAIL_HOST_NAME}" > .env
+            echo "EMAIL_USER_NAME=${EMAIL_USER_NAME}" >> .env
+            echo "EMAIL_PASSWORD=${EMAIL_PASSWORD}" >> .env
             
             echo "=== Showing .env contents ==="
             cat .env
