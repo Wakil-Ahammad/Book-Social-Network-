@@ -375,6 +375,16 @@ jobs:
             export EMAIL_USER_NAME=${EMAIL_USER_NAME}
             export EMAIL_PASSWORD=${EMAIL_PASSWORD}
             cd ~/ci-cd
+            
+            echo "=== Creating .env file ==="
+            cat > .env << 'ENV_EOF'
+            EMAIL_HOST_NAME=${EMAIL_HOST_NAME}
+            EMAIL_USER_NAME=${EMAIL_USER_NAME}
+            EMAIL_PASSWORD=${EMAIL_PASSWORD}
+            ENV_EOF
+            
+            echo "=== Showing .env contents ==="
+            cat .env
 
             echo "=== Pulling fresh images ==="
             sudo -E docker-compose pull
@@ -386,7 +396,7 @@ jobs:
             sudo docker ps
           
             echo "=== Check environment variables ==="
-            sudo docker exec -it bsn-api env | grep EMAIL || echo "No EMAIL variables found"
+            sudo docker exec bsn-api env | grep EMAIL || echo "No EMAIL variables found"
           EOF
         env:
           VPS_USER: ${{ secrets.VPS_USERNAME }}
