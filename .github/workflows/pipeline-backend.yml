@@ -377,13 +377,16 @@ jobs:
             cd ~/ci-cd
 
             echo "=== Pulling fresh images ==="
-            sudo docker-compose pull
+            sudo -E docker-compose pull
 
             echo "=== Starting containers ==="
-            sudo docker-compose up -d --force-recreate
+            sudo -E docker-compose up -d --force-recreate
 
             echo "=== Final status ==="
             sudo docker ps
+          
+            echo "=== Check environment variables ==="
+            sudo docker exec -it bsn-api-container env | grep EMAIL || echo "No EMAIL variables found"
           EOF
         env:
           VPS_USER: ${{ secrets.VPS_USERNAME }}
