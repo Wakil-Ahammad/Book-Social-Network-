@@ -386,7 +386,7 @@ jobs:
             sudo docker ps
           
             echo "=== Check environment variables ==="
-            sudo docker exec -it bsn-api-container env | grep EMAIL || echo "No EMAIL variables found"
+            sudo docker exec -it bsn-api env | grep EMAIL || echo "No EMAIL variables found"
           EOF
         env:
           VPS_USER: ${{ secrets.VPS_USERNAME }}
